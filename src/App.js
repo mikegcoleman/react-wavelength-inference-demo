@@ -1,48 +1,69 @@
+/* eslint-disable class-methods-use-this */
+/* eslint-disable react/sort-comp */
+/* eslint-disable no-constant-condition */
 /* eslint-disable jsx-a11y/label-has-associated-control */
 /* eslint-disable no-console */
 /* eslint-disable react/destructuring-assignment */
-
 import React, {Component} from 'react';
 import './App.css';
 import axios from 'axios';
-
-// http://100.25.33.242:5000/api/1.0/classify
+import imageCompression from 'browser-image-compression';
 
 class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
       selectedFile: null,
-      URL: '',
+      URL: 'http://100.25.33.242:5000/api/1.0/classify',
       originalImage: null,
       loading: false,
       analyzedImage: null,
       error: false,
       errorMessage: '',
     };
+
+
   }
 
-  fileSelectedHandler = (event) => {
+  uploadImageHandler = (event) => {
     this.setState({
       error: false,
       errorMessage: '',
       analyzedImage: null,
     });
-    console.log(event.target.files[0]);
-    this.setState({
-      selectedFile: event.target.files[0],
-      originalImage: URL.createObjectURL(event.target.files[0]),
+
+    const imageFile = event.target.files[0];
+    console.log(imageFile);
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 300,
+      useWebWorker: true,
+    };
+    try {
+      console.log('compressing');
+    } catch (e) {
+      console.log(e);
+      this.setState({
+        error: e,
+      });
+    }
+    const compressedImage = imageCompression(imageFile, options).then((img) => {
+      this.setState({
+        selectedFile: img,
+        originalImage: URL.createObjectURL(img),
+      });
+      console.log(img);
     });
   };
 
-  fileUploadHandler = () => {
+  processImageHandler = () => {
     const fd = new FormData();
     this.setState({originalImage: null});
     this.setState({loading: true});
+    console.log(`${this.state.selectedFile} <-- selectedFile`);
     fd.append('file', this.state.selectedFile);
 
     axios.post(this.state.URL, fd).then((res) => {
-      console.log(res.data);
       this.setState({
         loading: false,
       });
@@ -82,12 +103,12 @@ class App extends Component {
           />
           <br />
         </label>
-        <input type="file" onChange={this.fileSelectedHandler} /> <br />
+        <input type="file" onChange={this.uploadImageHandler} /> <br />
         <p />
         {this.state.originalImage ? (
           <div>
             <img src={this.state.originalImage} alt="Original upload" /> <p />
-            <button type="submit" onClick={this.fileUploadHandler}>
+            <button type="submit" onClick={this.processImageHandler}>
               Process Image
             </button>
           </div>
