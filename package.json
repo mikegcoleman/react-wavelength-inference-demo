@@ -10,7 +10,8 @@
     "browser-image-compression": "^1.0.12",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
-    "react-scripts": "3.4.1"
+    "react-scripts": "3.4.1",
+    "react-spinners-css": "^1.2.2"
   },
   "scripts": {
     "start": "react-scripts start",

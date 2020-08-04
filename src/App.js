@@ -2,27 +2,26 @@
 /* eslint-disable react/sort-comp */
 /* eslint-disable no-constant-condition */
 /* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable no-console */
 /* eslint-disable react/destructuring-assignment */
 import React, {Component} from 'react';
 import './App.css';
 import axios from 'axios';
 import imageCompression from 'browser-image-compression';
+import {Ellipsis} from 'react-spinners-css';
 
 class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
       selectedFile: null,
-      URL: 'http://100.25.33.242:5000/api/1.0/classify',
+      URL: '',
       originalImage: null,
       loading: false,
       analyzedImage: null,
       error: false,
       errorMessage: '',
+      timer: null,
     };
-
-
   }
 
   uploadImageHandler = (event) => {
@@ -31,39 +30,54 @@ class App extends Component {
       errorMessage: '',
       analyzedImage: null,
     });
+    if (!event.target.files[0]) {
+      return;
+    }
 
     const imageFile = event.target.files[0];
-    console.log(imageFile);
+    const filename = imageFile.name.toLowerCase();
+    const regex = new RegExp('(.*?).(jpeg|jpg)$');
+
+    if (!regex.test(filename)) {
+      this.setState({
+        error: true,
+        errorMessage:
+          'Please select an JPEG file with a jpg or jpeg extension',
+        originalImage: null,
+      });
+      return;
+    }
     const options = {
       maxSizeMB: 1,
-      maxWidthOrHeight: 300,
+      maxWidthOrHeight: 500,
       useWebWorker: true,
     };
-    try {
-      console.log('compressing');
-    } catch (e) {
-      console.log(e);
-      this.setState({
-        error: e,
-      });
-    }
+    // eslint-disable-next-line no-unused-vars
     const compressedImage = imageCompression(imageFile, options).then((img) => {
       this.setState({
         selectedFile: img,
         originalImage: URL.createObjectURL(img),
       });
-      console.log(img);
     });
   };
 
-  processImageHandler = () => {
+  processImageHandler = async () => {
+    if (this.state.URL === '') {
+      this.setState({
+        errorMessage: 'Please enter the server FQDN or IP address',
+        error: true,
+      });
+      return;
+    }
+    const t0 = performance.now();
     const fd = new FormData();
+    const apiEndpoint = `http://${this.state.URL}:5000/api/1.0/classify`;
     this.setState({originalImage: null});
     this.setState({loading: true});
-    console.log(`${this.state.selectedFile} <-- selectedFile`);
     fd.append('file', this.state.selectedFile);
 
-    axios.post(this.state.URL, fd).then((res) => {
+    try {
+      const res = await axios.post(apiEndpoint, fd, {timeout: 7500});
       this.setState({
         loading: false,
       });
@@ -77,14 +91,24 @@ class App extends Component {
       let tempImage = res.data.image.substring(2);
       tempImage = tempImage.substring(0, tempImage.length - 1);
       const imgURL = `data:image/png;base64,${tempImage}`;
+      const t1 = performance.now();
       this.setState({
         analyzedImage: imgURL,
+        timer: ((t1 - t0) / 1000).toFixed(3),
       });
-    });
+    } catch (err) {
+      this.setState({
+        error: true,
+        errorMessage: err.message,
+        loading: false,
+      });
+    }
   };
 
   handleURLChange = (event) => {
     this.setState({
+      error: false,
+      errorMessage: '',
       URL: event.target.value,
     });
   };
@@ -92,17 +116,23 @@ class App extends Component {
   render() {
     return (
       <div className="App">
-        <header>Wavelength Inference Demo App</header>
-        <label>
-          API endpoint: <br />
-          <input
-            type="text"
-            name="URL"
-            value={this.state.URL}
-            onChange={this.handleURLChange}
-          />
-          <br />
-        </label>
+        <div className="header">
+          <h3>Wavelength Inference Demo App</h3>
+        </div>
+        <div className="api">
+          <label>
+            Server IP or FQDN: <p />
+            <input
+              className="input"
+              type="text"
+              name="URL"
+              value={this.state.URL}
+              size="20"
+              onChange={this.handleURLChange}
+            />
+            <br />
+          </label>
+        </div>
         <input type="file" onChange={this.uploadImageHandler} /> <br />
         <p />
         {this.state.originalImage ? (
@@ -115,14 +145,25 @@ class App extends Component {
         ) : (
           ''
         )}
-        {this.state.loading ? <h2>Processing the image . . . </h2> : ''}
+        {this.state.loading ? (
+          <h2>
+            <Ellipsis color="#0073ff" />
+          </h2>
+        ) : (
+          ''
+        )}
         {this.state.error ? (
-          <h2>An Error occured - {this.state.errorMessage}</h2>
+          <div className="error">
+            <h2>An Error occured - {this.state.errorMessage}</h2>
+          </div>
         ) : (
           ''
         )}
         {this.state.analyzedImage ? (
-          <img src={this.state.analyzedImage} alt="Analyzed version" />
+          <div>
+            <img src={this.state.analyzedImage} alt="Analyzed version" />
+            <p>Image processing took {this.state.timer} seconds</p>
+          </div>
         ) : (
           ''
         )}
