@@ -48,7 +48,7 @@ class App extends Component {
       return;
     }
     const options = {
-      maxSizeMB: 1,
+      maxSizeMB: 2,
       maxWidthOrHeight: 400,
       useWebWorker: true,
     };
