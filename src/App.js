@@ -36,20 +36,20 @@ class App extends Component {
 
     const imageFile = event.target.files[0];
     const filename = imageFile.name.toLowerCase();
-    const regex = new RegExp('(.*?).(jpeg|jpg)$');
+    const regex = new RegExp('(.*?).(jpeg|jpg|png)$');
 
     if (!regex.test(filename)) {
       this.setState({
         error: true,
         errorMessage:
-          'Please select an JPEG file with a jpg or jpeg extension',
+          'Please select an JPEG or PNG file with a jpg, jpeg, or png extension',
         originalImage: null,
       });
       return;
     }
     const options = {
       maxSizeMB: 1,
-      maxWidthOrHeight: 500,
+      maxWidthOrHeight: 400,
       useWebWorker: true,
     };
     // eslint-disable-next-line no-unused-vars
